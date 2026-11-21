@@ -1,0 +1,6 @@
+{
+  "name": "StickyBoard",
+  "description": "Ultra-lite real-time sticky notes and productivity canvas with encrypted Firebase sync and live collaboration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,96 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
+
+.font-sans-note {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.font-display-note {
+  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+}
+
+.font-serif-note {
+  font-family: 'Lora', Georgia, serif;
+}
+
+.font-mono-note {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+.font-hand-note {
+  font-family: 'Caveat', cursive;
+}
+
+/* Board Background Themes */
+.board-bg-light {
+  background-color: #f8f7f3;
+  background-image: radial-gradient(#d8d4c8 1.1px, transparent 1.1px);
+  background-size: 24px 24px;
+}
+
+.board-bg-candy {
+  background-color: #fff6fa;
+  background-image:
+    radial-gradient(#e9c9df 1.15px, transparent 1.15px),
+    linear-gradient(135deg, #fff5f8 0%, #f5f3ff 52%, #eff8ff 100%);
+  background-size: 24px 24px, 100% 100%;
+}
+
+.board-bg-dark {
+  background-color: #13151a;
+  background-image: radial-gradient(#282c37 1.1px, transparent 1.1px);
+  background-size: 24px 24px;
+}
+
+/* Subtle Wind Physics Simulation (compositor-only transform) */
+@keyframes sticky-breeze {
+  0%,
+  100% {
+    transform: rotate(var(--base-tilt, 0deg)) translate3d(0px, 0px, 0px);
+  }
+  35% {
+    transform: rotate(calc(var(--base-tilt, 0deg) + 0.9deg)) translate3d(1.5px, -1px, 0px);
+  }
+  70% {
+    transform: rotate(calc(var(--base-tilt, 0deg) - 0.7deg)) translate3d(-1px, 1px, 0px);
+  }
+}
+
+.sticky-wind-active {
+  transform-origin: 50% 8%;
+  animation: sticky-breeze var(--wind-duration, 6.5s) ease-in-out var(--wind-delay, 0s) infinite;
+}
+
+.sticky-wind-active:hover,
+.sticky-wind-paused {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticky-wind-active {
+    animation: none !important;
+  }
+}
+
+/* Clean custom scrollbars inside notes */
+.note-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.note-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.note-scroll::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.16);
+  border-radius: 9999px;
+}

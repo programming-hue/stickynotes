@@ -1,0 +1,359 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private authenticated user profile for Google Sign-In accounts.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 254
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "displayName", "createdAt", "updatedAt"]
+    },
+    "BoardRef": {
+      "title": "BoardRef",
+      "description": "Reference pointer stored under a collaborator's user profile for fast discovery of shared boards.",
+      "type": "object",
+      "properties": {
+        "boardId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "boardTitle": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "role": {
+          "type": "string",
+          "enum": ["editor", "viewer"]
+        },
+        "addedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["boardId", "ownerId", "boardTitle", "role", "addedAt"]
+    },
+    "Board": {
+      "title": "Board",
+      "description": "Collaborative sticky notes workspace board with theme and physics settings.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["light", "candy", "dark"]
+        },
+        "windEnabled": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "title", "theme", "windEnabled", "createdAt", "updatedAt"]
+    },
+    "BoardSecret": {
+      "title": "BoardSecret",
+      "description": "AES-256-GCM board encryption key material restricted strictly to board owner and authorized members.",
+      "type": "object",
+      "properties": {
+        "wrappedKey": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "keyVersion": {
+          "type": "number"
+        },
+        "isPassphraseProtected": {
+          "type": "boolean"
+        },
+        "salt": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "keyCheck": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["wrappedKey", "keyVersion", "isPassphraseProtected", "createdAt", "updatedAt"]
+    },
+    "BoardMember": {
+      "title": "BoardMember",
+      "description": "Authorized collaborator membership and RBAC role for a sticky notes board.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "boardOwnerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 254
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "role": {
+          "type": "string",
+          "enum": ["editor", "viewer"]
+        },
+        "inviteId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "joinedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "boardOwnerId", "email", "displayName", "role", "inviteId", "joinedAt", "updatedAt"]
+    },
+    "NoteItem": {
+      "title": "NoteItem",
+      "description": "Encrypted sticky note or mini-app widget placed on a board canvas.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["sticky", "checklist", "pomodoro", "habit", "mood", "clock"]
+        },
+        "color": {
+          "type": "string",
+          "enum": ["butter", "blush", "mint", "sky", "lavender", "peach"]
+        },
+        "font": {
+          "type": "string",
+          "enum": ["sans", "serif", "mono", "hand", "display"]
+        },
+        "fontSize": {
+          "type": "string",
+          "enum": ["sm", "md", "lg"]
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        },
+        "tilt": {
+          "type": "number"
+        },
+        "zIndex": {
+          "type": "number"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "encryptedPayload": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "iv": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "createdBy": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "updatedBy": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "type",
+        "color",
+        "font",
+        "fontSize",
+        "x",
+        "y",
+        "width",
+        "height",
+        "tilt",
+        "zIndex",
+        "archived",
+        "encryptedPayload",
+        "iv",
+        "createdBy",
+        "updatedBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BoardInvite": {
+      "title": "BoardInvite",
+      "description": "Real-time collaboration invitation addressed to a verified Google email.",
+      "type": "object",
+      "properties": {
+        "boardId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "boardTitle": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "inviteeEmail": {
+          "type": "string",
+          "maxLength": 254
+        },
+        "role": {
+          "type": "string",
+          "enum": ["editor", "viewer"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "accepted", "revoked"]
+        },
+        "acceptedByUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "boardId",
+        "boardTitle",
+        "ownerId",
+        "ownerName",
+        "inviteeEmail",
+        "role",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profile isolated to the authenticated owner."
+    },
+    "/users/{userId}/boardRefs/{boardId}": {
+      "schema": { "$ref": "#/entities/BoardRef" },
+      "description": "Shared board pointers owned by the collaborator."
+    },
+    "/boards/{boardId}": {
+      "schema": { "$ref": "#/entities/Board" },
+      "description": "Sticky notes workspace boards."
+    },
+    "/boards/{boardId}/secrets/{secretId}": {
+      "schema": { "$ref": "#/entities/BoardSecret" },
+      "description": "AES-256-GCM board key material restricted to board owner and members."
+    },
+    "/boards/{boardId}/members/{memberUid}": {
+      "schema": { "$ref": "#/entities/BoardMember" },
+      "description": "Collaborator RBAC membership subcollection for a board."
+    },
+    "/boards/{boardId}/notes/{noteId}": {
+      "schema": { "$ref": "#/entities/NoteItem" },
+      "description": "Encrypted sticky notes and widgets belonging to a board."
+    },
+    "/invites/{inviteId}": {
+      "schema": { "$ref": "#/entities/BoardInvite" },
+      "description": "Email-addressed collaboration invitations for boards."
+    }
+  }
+}
