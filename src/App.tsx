@@ -10,6 +10,7 @@ import {
   Lock,
   LogIn,
   LogOut,
+  Palette,
   Plus,
   Search,
   Sparkles,
@@ -110,13 +111,31 @@ export default function App() {
   const [newBoardTitle, setNewBoardTitle] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveDrawer, setShowArchiveDrawer] = useState(false);
+  const [showMobileAddSheet, setShowMobileAddSheet] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)').matches : false
+  );
 
   const boardMenuRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const saveTimersRef = useRef<Record<string, number>>({});
   const bootstrappingRef = useRef(false);
+  const pendingOpenBoardIdRef = useRef<string | null>(null);
+  const [acceptingInviteId, setAcceptingInviteId] = useState<string | null>(null);
+
+  // Sync mobile viewport breakpoint with Tailwind md (768px)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const onChange = () => {
+      setIsMobile(mq.matches);
+      if (!mq.matches) setShowMobileAddSheet(false);
+    };
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   const allBoards = useMemo(() => [...ownedBoards, ...sharedBoards], [ownedBoards, sharedBoards]);
 
@@ -199,7 +218,7 @@ export default function App() {
       setSharedBoards(boards);
     });
     const unsubInvites = user.email
-      ? subscribeIncomingInvites(user.email, (invs) => setIncomingInvites(invs))
+      ? subscribeIncomingInvites(user.uid, user.email, (invs) => setIncomingInvites(invs))
       : () => {};
 
     return () => {
@@ -228,6 +247,17 @@ export default function App() {
           bootstrappingRef.current = false;
         }
       })();
+      return;
+    }
+
+    if (pendingOpenBoardIdRef.current) {
+      if (allBoards.some((b) => b.id === pendingOpenBoardIdRef.current)) {
+        const targetId = pendingOpenBoardIdRef.current;
+        pendingOpenBoardIdRef.current = null;
+        if (activeBoardId !== targetId) {
+          setActiveBoardId(targetId);
+        }
+      }
       return;
     }
 
@@ -341,6 +371,7 @@ export default function App() {
         setShowShareModal(false);
         setShowArchiveDrawer(false);
         setShowBoardMenu(false);
+        setShowMobileAddSheet(false);
         setSearchOpen(false);
         return;
       }
@@ -586,33 +617,33 @@ export default function App() {
   return (
     <div className={`h-screen w-screen flex flex-col overflow-hidden ${canvasBgClass}`}>
       {/* Clean 3-Zone Top Navigation Bar */}
-      <header className="relative z-30 h-14 px-4 md:px-6 flex items-center justify-between gap-8 border-b border-black/[0.07] dark:border-white/[0.08] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shrink-0">
+      <header className="relative z-30 h-13 md:h-14 px-3 md:px-6 flex items-center justify-between gap-2 md:gap-8 border-b border-black/[0.07] dark:border-white/[0.08] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shrink-0">
         {/* Zone 1: Brand Wordmark + Board Selector */}
-        <div className="flex items-center gap-4 min-w-0">
-          <span className="font-display-note text-lg font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <span className="font-display-note text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0">
             StickyBoard
           </span>
 
           {user && activeBoard && (
-            <div ref={boardMenuRef} className="relative">
+            <div ref={boardMenuRef} className="relative min-w-0">
               <button
                 type="button"
                 onClick={() => setShowBoardMenu((v) => !v)}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap"
+                className="inline-flex items-center gap-1 px-1.5 py-1.5 min-h-[36px] text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap max-w-full"
               >
-                <span className="truncate max-w-[140px] sm:max-w-[200px]">{activeBoard.title}</span>
+                <span className="truncate max-w-[110px] sm:max-w-[200px]">{activeBoard.title}</span>
                 <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-70" />
               </button>
 
               {showBoardMenu && (
-                <div className="absolute left-0 top-9 w-64 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg p-2 z-50 space-y-1 text-xs">
+                <div className="absolute left-0 top-10 w-64 max-w-[calc(100vw-24px)] rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg p-2 z-50 space-y-1 text-xs">
                   <div className="px-2 py-1 text-[11px] font-medium text-slate-400">
                     Your Boards
                   </div>
                   {allBoards.map((b) => (
                     <div
                       key={b.id}
-                      className={`flex items-center justify-between rounded-lg px-2.5 py-2 cursor-pointer transition-colors ${
+                      className={`flex items-center justify-between rounded-lg px-2.5 py-2.5 md:py-2 cursor-pointer transition-colors ${
                         b.id === activeBoard.id
                           ? 'bg-slate-100 dark:bg-slate-800 font-semibold text-slate-900 dark:text-white'
                           : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
@@ -716,18 +747,19 @@ export default function App() {
         </nav>
 
         {/* Zone 3: Single Primary Action / Account */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {!user ? (
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-white dark:text-slate-900 bg-slate-900 dark:bg-white rounded-lg hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors whitespace-nowrap shrink-0"
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 text-xs font-medium text-white dark:text-slate-900 bg-slate-900 dark:bg-white rounded-lg hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors whitespace-nowrap shrink-0"
             >
               <LogIn className="w-3.5 h-3.5" />
-              Sign in with Google
+              <span className="sm:hidden">Sign in</span>
+              <span className="hidden sm:inline">Sign in with Google</span>
             </button>
           ) : (
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 sm:gap-2.5">
               {user.photoURL ? (
                 <img
                   src={user.photoURL}
@@ -744,10 +776,10 @@ export default function App() {
                 type="button"
                 onClick={handleLogout}
                 title={`Signed in as ${user.email}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 text-xs font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                Sign out
+                <span>Sign out</span>
               </button>
             </div>
           )}
@@ -766,14 +798,25 @@ export default function App() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              disabled={acceptingInviteId === visibleIncomingInvites[0].id}
               onClick={async () => {
                 const inv = visibleIncomingInvites[0];
-                await acceptBoardInvite(user, inv);
-                setActiveBoardId(inv.boardId);
+                setAcceptingInviteId(inv.id);
+                setAuthError(null);
+                pendingOpenBoardIdRef.current = inv.boardId;
+                try {
+                  await acceptBoardInvite(user, inv);
+                  setActiveBoardId(inv.boardId);
+                } catch (err) {
+                  pendingOpenBoardIdRef.current = null;
+                  setAuthError(err instanceof Error ? err.message : 'Unable to accept invitation.');
+                } finally {
+                  setAcceptingInviteId(null);
+                }
               }}
-              className="px-3 py-1 rounded-md bg-slate-900 text-white font-medium hover:bg-slate-800"
+              className="px-3 py-1 rounded-md bg-slate-900 text-white font-medium hover:bg-slate-800 disabled:opacity-50"
             >
-              Accept &amp; Open
+              {acceptingInviteId === visibleIncomingInvites[0].id ? 'Opening...' : 'Accept & Open'}
             </button>
             <button
               type="button"
@@ -822,10 +865,11 @@ export default function App() {
         </div>
       )}
 
-      {/* Infinite Tactile Canvas */}
+      {/* Infinite Tactile Canvas (Desktop) / Responsive Vertical Feed (Mobile) */}
       <main
         ref={canvasRef}
         onDoubleClick={(e) => {
+          if (isMobile) return;
           if (e.target !== canvasRef.current && !(e.target as HTMLElement).dataset.canvasSurface) {
             return;
           }
@@ -836,10 +880,10 @@ export default function App() {
           const y = Math.max(24, Math.round(e.clientY - rect.top + (canvasRef.current?.scrollTop || 0) - 40));
           void addNoteAt('sticky', x, y);
         }}
-        className="relative flex-1 overflow-auto"
+        className={`relative flex-1 ${isMobile ? 'overflow-y-auto overflow-x-hidden' : 'overflow-auto'}`}
       >
         {needsPassphrase ? (
-          <div className="h-full flex items-center justify-center p-6">
+          <div className="h-full flex items-center justify-center p-4 sm:p-6">
             <form
               onSubmit={handleUnlockBoard}
               className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-lg space-y-4"
@@ -865,7 +909,7 @@ export default function App() {
               />
               <button
                 type="submit"
-                className="w-full py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:bg-slate-800"
+                className="w-full py-2.5 sm:py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:bg-slate-800"
               >
                 Unlock &amp; Decrypt
               </button>
@@ -874,24 +918,30 @@ export default function App() {
         ) : (
           <div
             data-canvas-surface="true"
-            className="relative min-w-[1400px] min-h-[960px] w-full h-full pb-28"
+            className={
+              isMobile
+                ? 'w-full min-h-full px-3 pt-3 pb-20 flex flex-col gap-3.5'
+                : 'relative min-w-[1400px] min-h-[960px] w-full h-full pb-28'
+            }
           >
             {visibleNotes.length === 0 ? (
               <div
                 data-canvas-surface="true"
-                className="h-full flex flex-col items-center justify-center text-center p-8 pointer-events-none"
+                className="h-full flex-1 flex flex-col items-center justify-center text-center p-6 sm:p-8 pointer-events-none"
               >
                 <div className="max-w-sm space-y-3 pointer-events-auto">
                   <p className="text-sm font-medium opacity-75">
                     {searchQuery
                       ? 'No notes match your search.'
+                      : isMobile
+                      ? 'Your board is clear. Tap Add below to pin a sticky note.'
                       : 'Your canvas is clear. Double-click anywhere or press N to pin a note.'}
                   </p>
                   {canEdit && !searchQuery && (
                     <button
                       type="button"
                       onClick={() => void addNoteAt('sticky', 80, 72)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 sm:py-2 text-xs font-medium rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" /> Add First Sticky Note
                     </button>
@@ -905,6 +955,7 @@ export default function App() {
                   note={note}
                   canEdit={canEdit}
                   windEnabled={activeWind}
+                  isMobile={isMobile}
                   onBringToFront={handleBringToFront}
                   onChange={handleNoteChange}
                   onArchive={(id) => handleArchiveToggle(id, true)}
@@ -916,8 +967,8 @@ export default function App() {
         )}
       </main>
 
-      {/* Sleek Floating Bottom Canvas Dock (AllStickyNotes-style Mini Apps + Controls) */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 max-w-[96vw] overflow-x-auto">
+      {/* Desktop Floating Bottom Canvas Dock (AllStickyNotes-style Mini Apps + Controls) */}
+      <div className="hidden md:block fixed bottom-4 left-1/2 -translate-x-1/2 z-30 max-w-[96vw] overflow-x-auto">
         <div className="inline-flex items-center gap-1 px-2 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/90 dark:border-slate-700/80 shadow-lg text-xs font-medium text-slate-700 dark:text-slate-200">
           <button
             type="button"
@@ -1004,26 +1055,167 @@ export default function App() {
           >
             {activeTheme}
           </button>
-
-          {/* Mobile quick access to Collaborate & Archive */}
-          {user && activeBoard && (
-            <button
-              type="button"
-              onClick={() => setShowShareModal(true)}
-              className="md:hidden inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 whitespace-nowrap shrink-0"
-            >
-              <Users className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setShowArchiveDrawer(true)}
-            className="md:hidden inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 whitespace-nowrap shrink-0"
-          >
-            <Archive className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
+
+      {/* Mobile Add Widget Bottom Sheet */}
+      {isMobile && showMobileAddSheet && (
+        <div
+          className="fixed inset-0 z-40 flex items-end bg-slate-950/35 backdrop-blur-[1px]"
+          onClick={() => setShowMobileAddSheet(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full rounded-t-2xl bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 pb-6 shadow-2xl space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                Add to Board
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowMobileAddSheet(false)}
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-xs font-medium">
+              <button
+                type="button"
+                disabled={!canEdit}
+                onClick={() => {
+                  void addNoteAt('sticky');
+                  setShowMobileAddSheet(false);
+                }}
+                className="flex flex-col items-center justify-center gap-1.5 min-h-[64px] rounded-xl bg-amber-100/90 text-slate-900 border border-amber-200 disabled:opacity-40"
+              >
+                <StickyNote className="w-4 h-4" />
+                Sticky Note
+              </button>
+              <button
+                type="button"
+                disabled={!canEdit}
+                onClick={() => {
+                  void addNoteAt('checklist');
+                  setShowMobileAddSheet(false);
+                }}
+                className="flex flex-col items-center justify-center gap-1.5 min-h-[64px] rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 disabled:opacity-40"
+              >
+                <CheckSquare className="w-4 h-4" />
+                Checklist
+              </button>
+              <button
+                type="button"
+                disabled={!canEdit}
+                onClick={() => {
+                  void addNoteAt('pomodoro');
+                  setShowMobileAddSheet(false);
+                }}
+                className="flex flex-col items-center justify-center gap-1.5 min-h-[64px] rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 disabled:opacity-40"
+              >
+                <Timer className="w-4 h-4" />
+                Timer
+              </button>
+              <button
+                type="button"
+                disabled={!canEdit}
+                onClick={() => {
+                  void addNoteAt('habit');
+                  setShowMobileAddSheet(false);
+                }}
+                className="flex flex-col items-center justify-center gap-1.5 min-h-[64px] rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 disabled:opacity-40"
+              >
+                <Sparkles className="w-4 h-4" />
+                Habits
+              </button>
+              <button
+                type="button"
+                disabled={!canEdit}
+                onClick={() => {
+                  void addNoteAt('mood');
+                  setShowMobileAddSheet(false);
+                }}
+                className="flex flex-col items-center justify-center gap-1.5 min-h-[64px] rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 disabled:opacity-40"
+              >
+                <HeartPulse className="w-4 h-4" />
+                Mood
+              </button>
+              <button
+                type="button"
+                disabled={!canEdit}
+                onClick={() => {
+                  void addNoteAt('clock');
+                  setShowMobileAddSheet(false);
+                }}
+                className="flex flex-col items-center justify-center gap-1.5 min-h-[64px] rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 disabled:opacity-40"
+              >
+                <Clock className="w-4 h-4" />
+                Clock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Compact Bottom Navigation Bar (<= 56px height) */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 h-14 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800 grid grid-cols-5 text-[11px] font-medium text-slate-600 dark:text-slate-300">
+        <button
+          type="button"
+          disabled={!canEdit}
+          onClick={() => setShowMobileAddSheet((v) => !v)}
+          className="flex flex-col items-center justify-center gap-0.5 text-slate-900 dark:text-white disabled:opacity-40"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSearchOpen((v) => !v)}
+          className={`flex flex-col items-center justify-center gap-0.5 ${
+            searchOpen ? 'text-slate-900 dark:text-white font-semibold' : ''
+          }`}
+        >
+          <Search className="w-4 h-4" />
+          <span>Search</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={cycleTheme}
+          className="flex flex-col items-center justify-center gap-0.5 capitalize"
+        >
+          <Palette className="w-4 h-4" />
+          <span>{activeTheme}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (user && activeBoard) {
+              setShowShareModal(true);
+            } else {
+              void handleGoogleLogin();
+            }
+          }}
+          className="flex flex-col items-center justify-center gap-0.5"
+        >
+          <Users className="w-4 h-4" />
+          <span>{user && activeBoard ? 'Share' : 'Sync'}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowArchiveDrawer(true)}
+          className="flex flex-col items-center justify-center gap-0.5 tabular-nums"
+        >
+          <Archive className="w-4 h-4" />
+          <span>{archivedNotes.length > 0 ? `Arch (${archivedNotes.length})` : 'Archive'}</span>
+        </button>
+      </nav>
 
       {/* Share & Security Modal */}
       {user && activeBoard && (

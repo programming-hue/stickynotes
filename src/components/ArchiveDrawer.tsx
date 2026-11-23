@@ -133,7 +133,7 @@ export const ArchiveDrawer: React.FC<ArchiveDrawerProps> = ({
           <button
             type="button"
             onClick={handleExport}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
           >
             <Download className="w-3.5 h-3.5" /> Export JSON
           </button>
@@ -149,7 +149,7 @@ export const ArchiveDrawer: React.FC<ArchiveDrawerProps> = ({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 <Upload className="w-3.5 h-3.5" /> Import JSON
               </button>

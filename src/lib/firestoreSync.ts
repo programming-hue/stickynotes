@@ -417,6 +417,7 @@ export function subscribeSharedBoardRefs(
   return onSnapshot(
     collection(db, 'users', uid, 'boardRefs'),
     async (snap) => {
+      if (snap.metadata.hasPendingWrites) return;
       const resolved: BoardSummary[] = [];
       for (const refDoc of snap.docs) {
         const refData = refDoc.data();
@@ -441,9 +442,12 @@ export function subscribeSharedBoardRefs(
             // Access revoked or board deleted; clean up stale ref silently
             void deleteDoc(doc(db, 'users', uid, 'boardRefs', boardId)).catch(() => {});
           }
-        } catch {
-          // Permission revoked; clean up stale ref silently
-          void deleteDoc(doc(db, 'users', uid, 'boardRefs', boardId)).catch(() => {});
+        } catch (err) {
+          const msg = err instanceof Error ? err.message.toLowerCase() : '';
+          if (msg.includes('permission')) {
+            // Permission revoked; clean up stale ref silently
+            void deleteDoc(doc(db, 'users', uid, 'boardRefs', boardId)).catch(() => {});
+          }
         }
       }
       onChange(resolved);
@@ -572,6 +576,7 @@ export function subscribeBoardInvitesForOwner(
 }
 
 export function subscribeIncomingInvites(
+  uid: string,
   email: string,
   onChange: (invites: BoardInvite[]) => void
 ): Unsubscribe {
@@ -579,7 +584,7 @@ export function subscribeIncomingInvites(
   const q = query(collection(db, 'invites'), where('inviteeEmail', '==', email.toLowerCase()));
   return onSnapshot(
     q,
-    (snap) => {
+    async (snap) => {
       const list: BoardInvite[] = [];
       for (const d of snap.docs) {
         const data = d.data();
@@ -594,6 +599,28 @@ export function subscribeIncomingInvites(
             role: data.role === 'viewer' ? 'viewer' : 'editor',
             status: 'pending',
           });
+        } else if (data.status === 'accepted' && data.acceptedByUid === uid) {
+          // Ensure boardRef exists for already-accepted invites
+          const boardId = String(data.boardId || '');
+          if (boardId) {
+            try {
+              const refDoc = await getDoc(doc(db, 'users', uid, 'boardRefs', boardId));
+              if (!refDoc.exists()) {
+                const memberSnap = await getDoc(doc(db, 'boards', boardId, 'members', uid));
+                if (memberSnap.exists()) {
+                  await setDoc(doc(db, 'users', uid, 'boardRefs', boardId), {
+                    boardId,
+                    ownerId: String(data.ownerId || ''),
+                    boardTitle: String(data.boardTitle || 'Shared Board').slice(0, 100),
+                    role: memberSnap.data().role === 'viewer' ? 'viewer' : 'editor',
+                    addedAt: serverTimestamp(),
+                  });
+                }
+              }
+            } catch {
+              // Ignore if membership was later revoked
+            }
+          }
         }
       }
       onChange(list);
